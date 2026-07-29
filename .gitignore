@@ -1,0 +1,23 @@
+# Entornos virtuales
+.venv/
+venv/
+env/
+ENV/
+data_Science_env/
+
+# Caché y archivos temporales de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Puntos de control de Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Archivos de configuración del sistema operativo y VS Code
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Archivos temporales o de prueba que no quieras subir
+*.log
+*.tmp
