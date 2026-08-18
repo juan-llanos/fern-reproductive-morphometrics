@@ -29,7 +29,7 @@ The dataset comes from original field and image-analysis measurements on 24 indi
 │   ├── 05_frond_shape_factor.ipynb
 │   └── 06_sori_estimation_reduced_sampling.ipynb
 ├── outputs/
-│   └── figures/               # Exported summary figures (one per notebook)
+│   └── figures/               # Exported summary figures (one or more per notebook)
 ├── src/
 │   └── plotting.py           # Shared plotting helpers (e.g. per-frond heatmaps)
 ├── .gitignore
@@ -71,7 +71,7 @@ A total of 24 individual fronds (`H01`–`H24`) were photographed under controll
 *The full collection of original frond photographs is available in the [`assets/frond_photos/`](assets/frond_photos/) directory.*
 
 ### 2. Area Extraction via ImageJ
-Total surface area ($\text{cm}^2$) for each frond was quantified using **ImageJ** through standardized scale calibration, color thresholding, and automated boundary extraction.
+Total surface area for each frond was quantified using **ImageJ** through standardized scale calibration, color thresholding, and automated boundary extraction.
 
 ![ImageJ Area Measurement Workflow](assets/method_screenshots/imagej_area_measurement.png)
 *Figure 1: Digital image processing workflow in ImageJ showing color thresholding and direct frond area calculation.*
@@ -84,10 +84,10 @@ Total surface area ($\text{cm}^2$) for each frond was quantified using **ImageJ*
 |---|----------|---------------|-----------------|
 | 01 | **Data Cleaning** | Standardizes column names/types and runs three validation checks (ID uniqueness, referential integrity between datasets, aggregate vs. row-level consistency). Confirms H15's missing data is a complete individual-level gap, and traces H19's discrepancy back to a data-entry error, corrected against original field records. | Data auditing, cross-dataset validation |
 | 02 | **Total Sori Imputation** | Imputes H15's missing total sori count. Distribution diagnostics (skewness, Shapiro-Wilk) justify Spearman over Pearson correlation. Compares OLS vs. Theil-Sen regression; Cook's distance and leverage analysis reveal a high-influence individual (H13) that shifts OLS coefficients by 30–50%, motivating the more robust Theil-Sen estimator for the final imputation. | Shapiro-Wilk, Spearman + Bonferroni, Cook's distance/leverage, **Theil-Sen regression** |
-| 03 | **Spatial Distribution Imputation** | Imputes *how* H15's sori are distributed along the frond, not just the total. After Benjamini-Hochberg correction across 20 simultaneous tests, no morphometric predictor for curve shape survives, ruling out regression. Implements a weighted KNN-donor method instead (K=9, selected via leave-one-out cross-validation), validated per-individual (mean Pearson r = 0.784). | Feature extraction (5 characteristic curve points), Benjamini-Hochberg, **weighted KNN-donor imputation**, LOO cross-validation |
-| 04 | **Sori Density Engineering** | Tests whether larger fronds pack sori more densely, or just proportionally more. After Bonferroni correction, no density relationship survives; a complementary log-log allometric regression (b ≈ 0.55–0.56) cannot rule out isometric growth. | Pearson/Spearman + Bonferroni, allometric scaling, Theil-Sen robustness check |
+| 03 | **Spatial Distribution Imputation** | Imputes *how* H15's sori are distributed along the  frond, not just the total. After Benjamini-Hochberg correction across 20 simultaneous tests, no  morphometric predictor for curve shape survives at the original 5-point resolution; a sensitivity  check at finer resolution (n=10) surfaces a handful of significant point-position correlations,  but confined to a narrow zone of the curve, not enough to support regression. Implements a  weighted KNN-donor method instead (K=9, selected via leave-one-out cross-validation), validated  per-individual (mean Pearson r = 0.784). | Benjamini-Hochberg correction, weighted KNN-donor imputation, leave-one-out cross-validation |
+| 04 | **Sori Density Engineering** | Tests whether larger fronds pack sori more densely, or just proportionally more. After Bonferroni correction, no density relationship survives; a complementary log-log allometric regression (b ≈ 0.55–0.56) cannot rule out isometric growth. A sensitivity check excluding the imputed H15 (Section 5.4) confirms the allometric exponent is stable regardless of its inclusion. | Pearson/Spearman + Bonferroni, allometric scaling, Theil-Sen robustness check |
 | 05 | **Frond Shape Factor** | Derives a species-characteristic coefficient K so leaf area can be estimated as `K · length · width`, without image analysis. Two estimation methods (ratio-average, no-intercept regression) converge closely (K ≈ 0.49–0.50). | No-intercept OLS vs. ratio-average, error analysis with photographic validation of outliers |
-| 06 | **Sori Estimation via Reduced Sampling** | Validates estimating an individual's total sori count from only 5 sampled rows instead of the typical 60–100, using numerical integration. Combines Simpson's rule and the trapezoidal rule into a hybrid formula, more resistant to sharp sori peaks than either alone. | Simpson's rule, trapezoidal rule, hybrid averaging, leave-one-out-style validation |
+| 06 | **Sori Estimation via Reduced Sampling** | Validates estimating an individual's total sori count from a small number of sampled rows instead of the typical 60–100, using numerical integration. A resolution sensitivity check (5 vs. 9 points) shows the accuracy gain is not statistically significant (Wilcoxon signed-rank test), so the final method is chosen for robustness: the trapezoidal rule at n=9, which cannot overshoot sharp sori peaks the way Simpson's rule can. | Simpson's rule, trapezoidal rule, hybrid averaging, Wilcoxon signed-rank test |
 
 
 
@@ -99,11 +99,11 @@ Total surface area ($\text{cm}^2$) for each frond was quantified using **ImageJ*
 
 - **Influence diagnostics**: Cook's distance, leverage, and studentized residuals to identify and reason about high-influence observations rather than removing them blindly.
 
-- **Imputation**: regression-based (Theil-Sen) for a scalar target; weighted KNN-donor reconstruction for a full distribution shape, each validated with leave-one-out cross-validation.Imputed values are flagged (`is_imputed`) throughout, so downstream analysis can include or exclude them explicitly.
+- **Imputation**: regression-based (Theil-Sen) for a scalar target, validated via Cook's distance, leverage, and predicted-vs-observed fit; weighted KNN-donor reconstruction for a full distribution shape, validated with leave-one-out cross-validation. Imputed values are flagged (`is_imputed`) throughout, so downstream analysis can include or exclude them explicitly.
 
 - **Allometric scaling**: log-log regression to test isometric vs. non-isometric growth.
 
-- **Numerical integration**: A 5-point reduced-sampling protocol (hybrid Simpson's/trapezoidal rule) estimates total sori count with ~6–7% median error, potentially reducing the fieldwork needed per individual by roughly 90%.
+- **Numerical integration**: A 9-point reduced-sampling protocol (trapezoidal rule) estimates total sori count with ~4.5% median error, potentially reducing the fieldwork needed per individual by roughly 85–90%.
 
 
 
@@ -113,9 +113,15 @@ Across the six notebooks, three threads tie the project together:
 
 1. **Frond size and total sori count are related, but not simply.** Sori count correlates moderately with all four morphometric predictors tested (frond length, width, leaf area, and pinna-row count; Spearman rho 0.56–0.67, notebook 02). Leaf area, despite combining length and width, is not the strongest predictor, likely because it carries additional measurement noise from digitization (ImageJ) and individual shape variability that isn't directly tied to reproductive output.
 
-2. **Sori are not distributed proportionally to size once density is considered.** Normalizing sori count by leaf area (notebook 04) reveals a directional trend, larger fronds show lower sori density, and an allometric exponent (b≈0.55) suggestive of negative allometry, but neither result is statistically confirmed at this sample size. This is the project's most open-ended finding, and the one most worth revisiting with a larger sample.
+2. **Sori are not distributed proportionally to size once density is considered.** Normalizing sori count by leaf area (notebook 04) reveals a directional trend, larger fronds show lower sori density, and an allometric exponent (b≈0.55) suggestive of negative allometry, but neither result is statistically confirmed at this sample size. This is the project's most open-ended finding, and the one most worth revisiting with a larger sample. This result also holds when the imputed individual (H15) is excluded (Section 5.4), confirming it is not an artifact of that imputation.
 
-3. **Two field-friendly shortcuts came out of understanding the data's structure well enough to simplify it.** The shape factor (K≈0.50, notebook 05) estimates leaf area from two linear measurements instead of image analysis; the 5-point reduced-sampling protocol (notebook 06) estimates total sori count from a fraction of the rows a full count would require. Neither was the original goal, both are practical byproducts of the deeper analysis.
+3. **Two field-friendly shortcuts came out of understanding the data's structure well enough to simplify it.** The shape factor (K≈0.50, notebook 05) estimates leaf area from two linear measurements instead of image analysis; the reduced-sampling protocol (notebook 06, 9 points via the trapezoidal rule) estimates total sori count from a fraction of the rows a full count would require. Neither was the original goal, both are practical byproducts of the deeper analysis.
+
+**A cross-notebook signal worth noting.** H20 is flagged as atypical by three independent,
+unrelated methods: the KNN-donor validation (notebook 03), the allometric Cook's distance
+diagnostic (notebook 04), and the sharp-peak visual check (notebook 06). None of these
+analyses reference each other, making the convergence a reasonable candidate for closer
+inspection in future work.
 
 **Scope and limitations.** This project characterizes patterns in sori count and spatial distribution, it does not measure reproductive capacity directly. Two fronds with the same sori count are not necessarily equally reproductive: sorus size, sporangia count per sorus, and spore viability all matter and were not measured here. The sample size (n=24, with one individual imputed) is also a limiting factor specifically for the density and allometric questions; results there are reported as directionally suggestive rather than statistically confirmed, and documented as such rather than overstated.
 

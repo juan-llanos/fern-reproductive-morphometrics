@@ -21,3 +21,4 @@ Thumbs.db
 # Archivos temporales o de prueba que no quieras subir
 *.log
 *.tmp
+desktop.ini
