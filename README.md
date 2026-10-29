@@ -9,7 +9,7 @@ This project began with a simple biological question: does a fern frond's morpho
 
 This is exploratory biological research first, and a methods case study second: every step (which correlation coefficient, which regression, which correction) is chosen and justified by what the data actually shows, not applied by default. `n_sori_total` is treated throughout as a countable trait, not as a direct proxy for reproductive output, sorus size, sporangia count per sorus, and spore viability all contribute to actual reproductive capacity and were outside this project's scope. Where the analysis genuinely doesn't support a claim (e.g., no robust relationship between frond size and sori density), the notebooks say so rather than reaching for a positive result.
 
-The dataset comes from original field and image-analysis measurements on 24 individual fronds, with sori counted at the row level along each frond's fertile zone. One individual (H15) had incomplete data, missing both its total sori count and its entire row-level distribution, which motivated the imputation methodology that runs through the middle of this project. A second data-quality issue, unrelated to missingness, is detailed in The Data section below.
+The dataset comes from original field and image-analysis measurements on 24 individual fronds of *Nephrolepis* sp., collected at the Jardín Botánico de Medellín (Medellín, Antioquia, Colombia), with sori counted at the row level along each frond's fertile zone. One individual (H15) had incomplete data, missing both its total sori count and its entire row-level distribution, which motivated the imputation methodology that runs through the middle of this project. A second data-quality issue, unrelated to missingness, is detailed in The Data section below.
 
 ## Repository Structure
 
@@ -60,6 +60,10 @@ Two data-quality issues drive much of the project's methodology:
 ## Data Collection & Image Processing
 
 Morphometric measurements and reproductive counts were extracted from original field specimens using standardized digital photography and image analysis tools.
+
+### Study site and sampling
+All measurements come from 24 individual plants of *Nephrolepis* sp. growing at the Jardín Botánico de Medellín. One frond per individual was measured and photographed (`H01`–`H24`), so each row of `fronds.csv` corresponds to a different plant. Length and width were taken directly on the frond, area was extracted from the photographs (see below), and sori were counted row by row along the fertile zone. The sampling was not designed to be random or representative of any wider population, so the results describe these 24 individuals and should be read with that in mind.
+
 
 ### 1. Primary Biological Data
 A total of 24 individual fronds (`H01`–`H24`) were photographed under controlled laboratory settings to assess overall morphology and row-level sori distribution along the fertile zone.
@@ -123,7 +127,7 @@ diagnostic (notebook 04), and the sharp-peak visual check (notebook 06). None of
 analyses reference each other, making the convergence a reasonable candidate for closer
 inspection in future work.
 
-**Scope and limitations.** This project characterizes patterns in sori count and spatial distribution, it does not measure reproductive capacity directly. Two fronds with the same sori count are not necessarily equally reproductive: sorus size, sporangia count per sorus, and spore viability all matter and were not measured here. The sample size (n=24, with one individual imputed) is also a limiting factor specifically for the density and allometric questions; results there are reported as directionally suggestive rather than statistically confirmed, and documented as such rather than overstated.
+**Scope and limitations.** This project characterizes patterns in sori count and spatial distribution, it does not measure reproductive capacity directly. Two fronds with the same sori count are not necessarily equally reproductive: sorus size, sporangia count per sorus, and spore viability all matter and were not measured here. The sample size (n=24, with one individual imputed) is also a limiting factor specifically for the density and allometric questions; results there are reported as directionally suggestive rather than statistically confirmed, and documented as such rather than overstated. All individuals come from a single site (Jardín Botánico de Medellín), so the findings cannot be extended to other populations or growing conditions without further sampling.
 
 
 
@@ -135,11 +139,15 @@ Python · pandas · numpy · matplotlib · seaborn · scipy.stats · statsmodels
 
 ## Running the Pipeline
 
+**Requirements:** Python 3.12 and [Anaconda](https://www.anaconda.com/) or Miniconda.
+
 Notebooks are numbered and designed to be run in order (01 → 06); each reads the processed output of an earlier notebook rather than the raw data directly (with the exception of `01`, which reads the raw files).
 
 ```bash
-git clone <repo-url>
-cd nephrolepis-sorus-analysis
+git clone https://github.com/juan-llanos/fern-reproductive-morphometrics.git
+cd fern-reproductive-morphometrics
+conda create -n helechos_env python=3.12 -y
+conda activate helechos_env
 pip install -r requirements.txt
 jupyter notebook notebooks/01_data_cleaning.ipynb
 ```
